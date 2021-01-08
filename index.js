@@ -20,18 +20,30 @@ function setHeader(res, filename){
 }
 function sendHTMLPDF(res, filename, content, options){
     return new Promise(function(resolve, reject){
-        setHeader(res, filename);
-        pdf.create(content, options).toStream(function(err, stream){
-            if(err){
-                reject(err);
-            }else{
-                stream.pipe(res);
-                stream.on('end', function(){
+        if(!options.directory)
+            setHeader(res, filename);
+        if(options.directory){
+            pdf.create(content, options).toFile(options.directory+filename, function(err, response){
+                if(err){
+                    reject(err);
+                }else{
                     res.end();
                     resolve();
-                })
-            }
-        });
+                }
+            });
+        } else {
+            pdf.create(content, options).toStream(function(err, stream){
+                if(err){
+                    reject(err);
+                }else{
+                    stream.pipe(res);
+                    stream.on('end', function(){
+                        res.end();
+                        resolve();
+                    })
+                }
+            });
+        }
     });
 }
 
