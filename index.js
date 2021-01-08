@@ -18,6 +18,15 @@ function setHeader(res, filename){
     res.header('Content-Disposition', 'inline; filename="' + filename + '"');
     res.header('Content-Transfer-Encoding', 'binary');
 }
+function optCleaner(opt) {
+    opt = opt || {};
+    opt.filename = clean.cleanOnlyString(opt.filename) || "file.pdf";
+    opt.html = clean.cleanOnlyString(opt.html);
+    opt.htmlContent = clean.cleanOnlyString(opt.htmlContent);
+    opt.options = opt.options || {};
+    opt.filePath = opt.filePath || {};
+    return opt;
+}
 function sendHTMLPDF(res, filename, content, options){
     return new Promise(function(resolve, reject){
         setHeader(res, filename);
@@ -30,6 +39,19 @@ function sendHTMLPDF(res, filename, content, options){
                     res.end();
                     resolve();
                 })
+            }
+        });
+    });
+}
+function savePDFFile(res, filePath, filename, content, options){
+    return new Promise(function(resolve, reject){
+        console.log(filePath+'/'+filename);
+        pdf.create(content, options).toFile(filePath+'/'+filename, function(err, response){
+            if(err){
+                reject(err);
+            }else{
+                res.end();
+                resolve();
             }
         });
     });
@@ -60,34 +82,59 @@ var _pdf = function(filename){
 var _pdfFromHTML = function(opt) {
     var _this = this;
     return new Promise(function (resolve, reject) {
-        opt = opt || {};
-        opt.filename = clean.cleanOnlyString(opt.filename) || "file.pdf";
-        opt.html = clean.cleanOnlyString(opt.html);
-        opt.htmlContent = clean.cleanOnlyString(opt.htmlContent);
-        opt.options = opt.options || {};
+        opt = optCleaner(opt);
+        if(opt.html === undefined && opt.htmlContent === undefined){
+            internalError(_this);
+            return reject('html and htmlContent not set');
+        }
 
-        if(opt.html !== undefined){
+        var optdata = opt.htmlContent || '';
+
+        if(opt.html) {
             fs.readFile(opt.html, 'utf-8', function(err, data){
                 if(err){
                     notFound(_this);
                     return reject(opt.html + ' does not exists');
                 }
-                sendHTMLPDF(_this, opt.filename, data, opt.options)
-                .then(resolve, reject);
+                optdata = data;
             });
-        }else if(opt.htmlContent !== undefined){
-            sendHTMLPDF(_this, opt.filename, opt.htmlContent, opt.options)
-            .then(resolve, reject);
-        }else{
-            internalError(_this);
-            reject('html and htmlContent not set');
         }
+
+        sendHTMLPDF(_this, opt.filename, optdata, opt.options)
+        .then(resolve, reject);
     });
 };
+
+var _savePDF = function(opt) {
+    var _this = this;
+    return new Promise(function (resolve, reject) {
+        opt = optCleaner(opt);
+        if(opt.html === undefined && opt.htmlContent === undefined){
+            internalError(_this);
+            return reject('html and htmlContent not set');
+        }
+
+        var optdata = opt.htmlContent || '';
+
+        if(opt.html) {
+            fs.readFile(opt.html, 'utf-8', function(err, data){
+                if(err){
+                    notFound(_this);
+                    return reject(opt.html + ' does not exists');
+                }
+                optdata = data;
+            });
+        }
+
+        savePDFFile(_this, opt.filePath, opt.filename, optdata, opt.options)
+        .then(resolve, reject);
+    })
+}
 
 function PDF(req, res, next){
     res.pdf = _pdf;
     res.pdfFromHTML = _pdfFromHTML;
+    res.htmlToFile = _savePDF;
     next();
 }
 
