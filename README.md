@@ -36,6 +36,14 @@ app.use('/pdfFromHTMLString', function(req, res){
     });
 });
 
+app.get('/htmlToPDFFile', function(req, res){
+    res.htmlToFile({
+      filename: 'generated.pdf',
+      htmlContent: '<html><body>ASDF</body></html>',
+      filePath: './storage/pdf'
+    })
+});
+
 app.use('/pdf', function(req, res){
     res.pdf(path.resolve(__dirname, './original.pdf'));
 })

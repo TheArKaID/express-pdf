@@ -21,6 +21,14 @@ app.get('/test/4', function(req, res){
     });
 });
 
+app.get('/test/8', function(req, res){
+    res.htmlToFile({
+      filename: 'generated.pdf',
+      htmlContent: '<html><body>ASDF</body></html>',
+      filePath: './storage/pdf'
+    })
+});
+
 var server = app.listen(8888);
 
 exports.closeServer = function(){
